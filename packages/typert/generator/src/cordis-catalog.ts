@@ -22,6 +22,17 @@ import type {
 
 type Mode = 'emit' | 'bail' | 'waterfall' | 'parallel' | 'serial'
 
+/**
+ * The scope prefix of an event name: the first segment for unscoped names
+ * (`agent/request` → `agent`), or the first two for scoped package names
+ * (`@deepseek-ai/cordis/request-run` → `@deepseek-ai/cordis`).
+ */
+function eventScopeOf(name: string): string {
+  const [first, second] = name.split('/')
+  if (first?.startsWith('@') && second !== undefined) return `${first}/${second}`
+  return first ?? name
+}
+
 /** The fenced-block info string for generated signature blocks (skipped by
  * doc-typecheck, since a bare signature fragment is not standalone-compilable). */
 const FENCE = 'ts cordis-catalog'
@@ -56,9 +67,13 @@ function reportTypeLinkViolations(gate: string, violations: string[]): void {
 
 /** One harness event, extracted from an `interface Events` block. */
 export interface EventEntry {
-  /** Scoped name, e.g. `agent/request`. */
+  /** Scoped name, e.g. `agent/request` or `@deepseek-ai/cordis/request-run`. */
   name: string
-  /** The scope prefix, e.g. `agent` (everything before the first `/`). */
+  /**
+   * The scope prefix: the first segment for unscoped names (`agent/request` →
+   * `agent`), or the first two for scoped package names
+   * (`@deepseek-ai/cordis/request-run` → `@deepseek-ai/cordis`).
+   */
   scope: string
   /** Full signature text (the method-signature member, JSDoc stripped). */
   signature: string
@@ -221,7 +236,7 @@ export class CordisCatalogProjector {
         if (isMode(mode)) {
           entries.push({
             name: event.name,
-            scope: event.name.split('/')[0] ?? event.name,
+            scope: eventScopeOf(event.name),
             signature: event.text,
             jsDoc: event.jsDoc ?? '',
             mode,

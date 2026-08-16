@@ -156,11 +156,12 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
 }
 
 /**
- * The owning subsystems page for every harness event scope (the segment
- * before the first `/`) the projection renders. Fail-closed exactly like
- * {@link SERVICE_PAGE}. Client-face events (`slash/*`, `theme/change`, …) are
- * invisible to the host-face projection and therefore never reach this map;
- * {@link EVENT_WALK_EXEMPTIONS} names each one with its documentation owner.
+ * The owning subsystems page for every harness event scope (the first
+ * segment, or the first two for `@scope/pkg` names) the projection renders.
+ * Fail-closed exactly like {@link SERVICE_PAGE}. Client-face events
+ * (`slash/*`, `theme/change`, …) are invisible to the host-face projection
+ * and therefore never reach this map; {@link EVENT_WALK_EXEMPTIONS} names
+ * each one with its documentation owner.
  */
 export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'agent': 'core.md',
@@ -168,7 +169,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'agent-preset': 'core.md',
   'approval': 'approval.md',
   'commands': 'commands.md',
-  'cordis': 'extensions.md',
+  '@deepseek-ai/cordis': 'extensions.md',
   'credentials': 'credentials.md',
   'domain': 'storage.md',
   'fs': 'filesystem.md',

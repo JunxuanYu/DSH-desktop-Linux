@@ -128,6 +128,14 @@ describe('LocalBashExecutor.run', () => {
     expect(result.aborted).toBe(false)
   })
 
+  it('pins the C locale by default so errno text stays English, and lets an explicit caller entry win', async () => {
+    const { bash } = await setup()
+    const pinned = await bash.run(bash.resolve({ command: 'echo "$LC_ALL"' }))
+    expect(pinned.stdout.text).toBe('C\n')
+    const overridden = await bash.run(bash.resolve({ command: 'echo "$LC_ALL"', env: { LC_ALL: 'en_US.UTF-8' } }))
+    expect(overridden.stdout.text).toBe('en_US.UTF-8\n')
+  })
+
   it('rejects on spawn failure (bad workdir)', async () => {
     const { bash } = await setup()
     await expect(bash.run(bash.resolve({ command: 'true', workdir: '/nonexistent-dsh' }))).rejects.toThrow(/ENOENT/)

@@ -2,15 +2,15 @@
 
 [English](README.md) | 中文
 
-动态双半插件包的浏览器半。host 侧 runner 把每个定义的代码留在进程内存里，并经一条 `cordis/request-run` 事件向打开的页面发问「要不要运行它」；本包回答这个请求、把定义变成活的浏览器插件，并把 `dynamicCordisRunner/retract` 事件变回干净的页面。
+动态双半插件包的浏览器半。host 侧 runner 把每个定义的代码留在进程内存里，并经一条 `@deepseek-ai/cordis/request-run` 事件向打开的页面发问「要不要运行它」；本包回答这个请求、把定义变成活的浏览器插件，并把 `@deepseek-ai/cordis/dynamic-retract` 事件变回干净的页面。
 
 ## 它做什么
 
-1. **事件订阅** —— 四条公告是转发的 host cordis 事件，所以本包经 `ctx.remote.$on` 消费 `cordis/request-run`、`cordis/request-run-resolved` 与 `dynamicCordisRunner/retract`，而 `$on` 的键面就是 api-remotes 的白名单。
+1. **事件订阅** —— 四条公告是转发的 host cordis 事件，所以本包经 `ctx.remote.$on` 消费 `@deepseek-ai/cordis/request-run`、`@deepseek-ai/cordis/request-run-resolved` 与 `@deepseek-ai/cordis/dynamic-retract`，而 `$on` 的键面就是 api-remotes 的白名单。
 2. **闭包求值** —— 浏览器半的源码作为一个 async 函数体运行，其参数即符号面（`React`、`console`、`styles`、`host`，外加遮蔽 `setTimeout`/`fetch`/`require` 的教学陷阱）。无 JSX、无 TypeScript、不能 import 模块。
 3. **guard 门面** —— `apply` 收到的是真 fiber ctx 之上的白名单代理：生命周期动词，加上**返回的 plugin 自己在 `inject` 里声明**的服务（所以要用对象形态 `{ inject: ['slots'], apply(ctx) {} }` 才拿得到服务；裸函数没有声明位，拿不到任何服务）。`slots` 座位分配遮蔽 priority（注册即遮蔽，最新一次运行者胜出）；`theme` 座位把覆盖层的 source 钉成包 id，并把它的 disposer 挂到 fiber 上。
 4. **loader entry** —— 加了 guard 的插件被塞进模块表，再经 `loader.create` 挂载，于是动态包与静态包共享同一套激活门控、fiber effect 清理与状态投影。卸载 = 移除 entry + 失效 factory + 撤下样式。
-5. **run 编排** —— 一条 `cordis/request-run` 事件问这一页要不要运行某个定义。回答的那一方按顺序把 run 跑完：先 host 半、再取源码、再浏览器半，最后一次回答带上结果。用户按下「运行」本身就是授权，同样走这条编排，只是没有要回答的对象；而纯 host 定义的 run 到 host 半就结束了 —— 这里没有第二半可取、也没有第二半可装。
+5. **run 编排** —— 一条 `@deepseek-ai/cordis/request-run` 事件问这一页要不要运行某个定义。回答的那一方按顺序把 run 跑完：先 host 半、再取源码、再浏览器半，最后一次回答带上结果。用户按下「运行」本身就是授权，同样走这条编排，只是没有要回答的对象；而纯 host 定义的 run 到 host 半就结束了 —— 这里没有第二半可取、也没有第二半可装。
 6. **包内 RPC** —— 包内的 `host.call` 经 `dynamicCordisRunner` Remote namespace（`invoke`）转给它自己的 host 半，三种路由失败码各自变成对应的教学错误。两个方向都只驮 JSON：省略入参会以 `null` 过线（所以 `host.call('listServices')` 合法，handler 收到 `null`），而生成的 codec 拒收的载荷（函数、`undefined`、类实例）会变成一条点明「哪次调用 + 约定是什么」的教学错误，而不是 codec 那个光秃秃的字段名。
 7. **渲染期失败回流** —— 槽位注册表的 supervision 接缝（`slots.onEntryError`）对页面上每一次 entry 边界崩溃都会通知；凡属于本 runner 落座过的包，那**一次**观察会分两个出口：一路上行给撰写它的会话（`reportRenderFailure`，给模型看），一路发布到本包 face 上的 `renderFailures`（给面板那一行看）。归属以 component 身份为键，在 guard 的 `register` 代理落座时记下 —— 注册表原样保存 component，所以不需要再维护一份与之同步的 entry 台账。这条通道纯属事后诊断：不驮任何 settle 权威、绝不触碰 run 的最终回答，而且报告本身失败时只吞不抛 —— 不让一次崩溃变成两次。
 
@@ -36,7 +36,7 @@
 
 #### 模型看到什么
 
-本包自己不贡献任何工具、提示词或上下文；它为一次 `cordis/request-run` 往返发回的回答，是它撰写并到达模型的第一样内容 —— host 把它变成那个被阻塞的 `cordis_run` 的结果。成功时带上已装载的 revision，以及（当浏览器半挂在这一页没有的服务上时）那些服务的名字。失败时带一个 reason：用户拒绝的 `rejected`、`host-half-failed`、或 `client-half-failed`；后者还带上本包自己的文本 —— 出错阶段（`evaluate` / `module-import` / `activate`）加上闭包、guard 或 fiber 的消息。guard 的教学错误（未声明的服务、被遮蔽的浏览器全局、返回值里没有 `apply`）正是经这个字段到达模型的。而装载之后、React 渲染时才发生的崩溃，走下面那条独立的事后通道。
+本包自己不贡献任何工具、提示词或上下文；它为一次 `@deepseek-ai/cordis/request-run` 往返发回的回答，是它撰写并到达模型的第一样内容 —— host 把它变成那个被阻塞的 `cordis_run` 的结果。成功时带上已装载的 revision，以及（当浏览器半挂在这一页没有的服务上时）那些服务的名字。失败时带一个 reason：用户拒绝的 `rejected`、`host-half-failed`、或 `client-half-failed`；后者还带上本包自己的文本 —— 出错阶段（`evaluate` / `module-import` / `activate`）加上闭包、guard 或 fiber 的消息。guard 的教学错误（未声明的服务、被遮蔽的浏览器全局、返回值里没有 `apply`）正是经这个字段到达模型的。而装载之后、React 渲染时才发生的崩溃，走下面那条独立的事后通道。
 
 #### token 影响
 

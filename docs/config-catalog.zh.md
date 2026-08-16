@@ -366,7 +366,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/bash-local/src/index.ts:41`](../packages/shell/bash-local/src/index.ts)
+来源：[`packages/shell/bash-local/src/index.ts:45`](../packages/shell/bash-local/src/index.ts)
 
 <a id="deepseek-aidsh-bash-sandbox"></a>
 

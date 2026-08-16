@@ -450,6 +450,16 @@ const VENDORED_LIBRARY = /^@deepseek-ai\\/(cosmokit|schemastery)(\\/|$)/
  * errors, or lost executable modes.`,
     expect: 1,
   },
+  // The LocaleNamespaceMap key is an unquoted interface property the generic
+  // pass cannot express; it must track the quoted NS constant and PropsLocale
+  // literals the pass renames, or PropsLocale<'@deepseek-ai/cordis'> breaks.
+  {
+    id: 'ui-cordis-locale-namespace-key',
+    file: 'packages/extensions/ui-cordis/src/client/locales.ts',
+    find: 'cordis: CordisKey',
+    replace: "'@deepseek-ai/cordis': CordisKey",
+    expect: 1,
+  },
   // The manifest table's name column plus the new upstream-name column, one edit per row.
   ...RENAMES.map(rename => ({
     id: `vendor-readme-row-${rename.directory}`,

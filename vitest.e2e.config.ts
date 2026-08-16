@@ -40,9 +40,15 @@ export default defineConfig({
   test: {
     execArgv: vitestExecArgv,
     setupFiles: ['./scripts/test-invariants.ts'],
-    // apps/cli only, not apps/*: apps/web/tests/*.e2e.ts needs the built
-    // frontend dist and runs under vitest.web.config.ts (the test:web job).
-    include: ['packages/*/*/tests/**/*.e2e.ts', 'apps/cli/tests/**/*.e2e.ts', 'examples/*/tests/**/*.e2e.ts'],
+    // apps/cli and apps/desktop only, not apps/*: apps/web/tests/*.e2e.ts needs
+    // the built frontend dist and runs under vitest.web.config.ts (the test:web
+    // job); apps/desktop e2e boots the built web runtime like the desktop app does.
+    include: [
+      'packages/*/*/tests/**/*.e2e.ts',
+      'apps/cli/tests/**/*.e2e.ts',
+      'apps/desktop/tests/**/*.e2e.ts',
+      'examples/*/tests/**/*.e2e.ts',
+    ],
     // Real model calls: generous timeouts, and retries for transient flakes
     // (the shared internal key hits concurrency quotas). No coverage — the
     // unit suites own the coverage gate.

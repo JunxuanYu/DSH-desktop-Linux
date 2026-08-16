@@ -20,15 +20,19 @@ import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@deepseek
 /**
  * Model-friendly environment overrides: disable colors, pagers, and
  * interactive terminal features that would garble tool output (the same set
- * Codex hardcodes; Claude Code achieves it via TERM=dumb). Bash-tool policy —
- * merged first into the spawn's explicit env, so a trusted caller's own entry
- * still wins; the subprocess service applies its credential scrub independently.
+ * Codex hardcodes; Claude Code achieves it via TERM=dumb), and pin the C
+ * locale so the kernel's errno text stays English regardless of the host
+ * locale (bash's denial signatures and runner-failure dialects are English).
+ * Bash-tool policy — merged first into the spawn's explicit env, so a trusted
+ * caller's own entry still wins; the subprocess service applies its
+ * credential scrub independently.
  */
 export const ENV_OVERRIDES = {
   NO_COLOR: '1',
   TERM: 'dumb',
   PAGER: 'cat',
   GIT_PAGER: 'cat',
+  LC_ALL: 'C',
 } as const
 
 /** Default SIGTERM→SIGKILL grace period (the `graceMs` config; matches OpenCode's 3s). */
